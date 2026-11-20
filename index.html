@@ -1,46 +1,81 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="hi">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Kailash Web Studio — सीखें, बनाएँ और आगे बढ़ें।">
-  <title>Kailash Web Studio</title>
+  <meta name="theme-color" content="#1e1b2e">
+  <title>अपनी कम्युनिटी</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="topbar">
-    <a class="brand" href="#">Kailash<span>.</span></a>
-    <nav aria-label="मुख्य मेन्यू">
-      <a href="#about">परिचय</a><a href="#services">सेवाएँ</a><a href="#contact">संपर्क</a>
-    </nav>
-  </header>
-  <main>
-    <section class="hero">
-      <p class="eyebrow">WELCOME TO MY WEBSITE</p>
-      <h1>नमस्ते! मैं <span>कैलाश</span> हूँ।</h1>
-      <p class="intro">यह मेरी पहली वेबसाइट है। यहाँ मैं अपनी सीखने की यात्रा, प्रोजेक्ट और नए विचार साझा करता हूँ।</p>
-      <a class="button" href="#about">और जानें</a>
-      <div class="orb orb-one"></div><div class="orb orb-two"></div>
+  <main class="app">
+    <header class="topbar">
+      <div><p class="eyebrow">WELCOME</p><h1 id="appTitle">अपनी कम्युनिटी</h1></div>
+      <button class="icon-btn" id="themeBtn" aria-label="थीम बदलें">☼</button>
+    </header>
+
+    <section class="screen active" id="home">
+      <div class="hero card">
+        <span class="hero-icon">✦</span>
+        <h2>एक सुरक्षित और मज़ेदार जगह</h2>
+        <p>अपने विचार साझा करें, पोस्ट देखें और छोटे गेम खेलें।</p>
+      </div>
+      <div class="section-head"><h2>नई पोस्ट</h2><span class="muted" id="postCount">0 पोस्ट</span></div>
+      <form class="card" id="postForm">
+        <label for="postText">आप क्या साझा करना चाहते हैं?</label>
+        <textarea id="postText" maxlength="500" placeholder="अपना विचार लिखें..." required></textarea>
+        <div class="form-bottom"><small>अधिकतम 500 अक्षर</small><button type="submit">पोस्ट करें ↗</button></div>
+      </form>
+      <div id="feed" class="feed"></div>
     </section>
-    <section id="about" class="section">
-      <p class="eyebrow">ABOUT</p><h2>मेरे बारे में</h2>
-      <p>मुझे टेक्नोलॉजी, Python, वेबसाइट बनाना और साइबर सिक्योरिटी सीखना पसंद है। यह पेज HTML और CSS से बनाया गया है।</p>
+
+    <section class="screen" id="games">
+      <div class="section-head"><h2>छोटे गेम्स</h2></div>
+      <article class="card game-card">
+        <div class="game-icon">🎲</div><div><h3>पासा रोल करें</h3><p class="muted">1 से 6 तक कोई नंबर पाएं।</p></div>
+        <button id="rollBtn">रोल करें</button>
+        <p class="game-result" id="diceResult">—</p>
+      </article>
+      <article class="card game-card">
+        <div class="game-icon">💡</div><div><h3>आज का सवाल</h3><p class="muted">मज़ेदार सवाल का जवाब सोचें।</p></div>
+        <button id="questionBtn">सवाल दिखाएँ</button>
+        <p class="game-result" id="questionResult">—</p>
+      </article>
     </section>
-    <section id="services" class="section">
-      <p class="eyebrow">WHAT I LEARN</p><h2>मेरी सीखने की दुनिया</h2>
-      <div class="cards">
-        <article class="card"><div class="icon">⌨️</div><h3>कोडिंग</h3><p>Python और वेब डेवलपमेंट की शुरुआत।</p></article>
-        <article class="card"><div class="icon">🌐</div><h3>वेबसाइट</h3><p>HTML और CSS से सुंदर वेब पेज।</p></article>
-        <article class="card"><div class="icon">🔐</div><h3>सुरक्षा</h3><p>कानूनी और सुरक्षित साइबर सिक्योरिटी सीखना।</p></article>
+
+    <section class="screen" id="rewards">
+      <div class="section-head"><h2>डेली रिवॉर्ड</h2></div>
+      <div class="card reward-card">
+        <div class="reward-star">★</div>
+        <h2 id="points">0</h2><p class="muted">आपके पॉइंट्स</p>
+        <p id="streak" class="streak">स्ट्रीक: 0 दिन</p>
+        <button id="claimBtn">आज का रिवॉर्ड लें</button>
+        <small id="claimInfo" class="muted">हर दिन एक बार 10 पॉइंट्स।</small>
       </div>
     </section>
-    <section id="contact" class="section contact">
-      <p class="eyebrow">CONTACT</p><h2>संपर्क</h2>
-      <p>अपना ईमेल या सोशल लिंक यहाँ जोड़ें।</p>
-      <a class="button secondary" href="mailto:yourname@example.com">ईमेल लिखें</a>
+
+    <section class="screen" id="profile">
+      <div class="section-head"><h2>मेरी प्रोफाइल</h2></div>
+      <form class="card profile-form" id="profileForm">
+        <div class="profile-avatar" id="avatarPreview">☺</div>
+        <label for="avatarFile">प्रोफाइल फोटो चुनें</label>
+        <input type="file" id="avatarFile" accept="image/*">
+        <label for="profileName">नाम</label>
+        <input id="profileName" maxlength="30" placeholder="अपना नाम">
+        <label for="profileBio">मेरे बारे में</label>
+        <textarea id="profileBio" maxlength="160" placeholder="अपने शौक लिखें..."></textarea>
+        <button type="submit">प्रोफाइल सेव करें</button>
+      </form>
+      <p class="notice">यह अभी आपके इसी ब्राउज़र में सेव होने वाला डेमो है। इसे ऑनलाइन अकाउंट या दूसरे लोगों के साथ सिंक नहीं किया जाता।</p>
     </section>
+
+    <nav class="nav">
+      <button class="nav-btn active" data-screen="home"><span>⌂</span>होम</button>
+      <button class="nav-btn" data-screen="games"><span>🎮</span>गेम्स</button>
+      <button class="nav-btn" data-screen="rewards"><span>★</span>रिवॉर्ड</button>
+      <button class="nav-btn" data-screen="profile"><span>☺</span>प्रोफाइल</button>
+    </nav>
   </main>
-  <footer>© <span id="year"></span> Kailash Web Studio · Made with HTML & CSS</footer>
   <script src="script.js"></script>
 </body>
 </html>
