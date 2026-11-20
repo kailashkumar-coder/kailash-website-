@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>चैट</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+    body { background: #1e1b2e; color: #fff; }
+    .screen { display: none; min-height: 100vh; padding-bottom: 70px; }
+    .screen.active { display: block; }
+    header { padding: 14px; background: #2d2547; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .card { background: #2d2547; margin: 10px; padding: 14px; border-radius: 12px; }
+    button { background: #8a5cf6; color: #fff; border: none; padding: 10px 16px; border-radius: 20px; cursor: pointer; }
+    select, input, textarea { padding: 10px; border-radius: 8px; border: none; width: 100%; margin: 6px 0; color: #000; }
+    .nav { position: fixed; bottom: 0; left: 0; right: 0; background: #2d2547; display: flex; justify-content: space-around; padding: 8px; overflow-x: auto; }
+    .nav button { background: none; padding: 8px; font-size: 13px; white-space: nowrap; }
+    .chat-item { display: flex; gap: 12px; padding: 12px; border-bottom: 1px solid #3d3560; cursor: pointer; align-items: center; }
+    .avatar { width: 48px; height: 48px; border-radius: 50%; background: #8a5cf6; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; overflow: hidden; }
+    .msgs { padding: 10px; height: 55vh; overflow-y: auto; }
+    .msg { background: #3d3560; padding: 8px 12px; border-radius: 12px; margin: 6px 0; max-width: 75%; word-wrap: break-word; }
+    .msg.me { background: #8a5cf6; margin-left: auto; }
+    .row { display: flex; gap: 6px; padding: 10px; align-items: center; }
+    .actions { display: flex; gap: 6px; align-items: center; }
+    .actions button { padding: 6px 10px; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+  <!-- लॉगिन / साइन अप -->
+  <div id="auth" class="screen active">
+    <header><h2>लॉगिन करें</h2></header>
+    <div class="card">
+      <p style="margin-bottom:8px">यह साइट सिर्फ 18 साल या उससे ऊपर के लोगों के लिए है।</p>
+      <input type="email" id="email" placeholder="ईमेल">
+      <input type="password" id="pass" placeholder="पासवर्ड">
+      <div class="row" style="padding: 4px 0;">
+        <button onclick="doLogin()">लॉगिन</button>
+        <button onclick="doSignup()" style="background: #555">नया खाता बनाएँ</button>
+      </div>
+      <p style="margin:12px 0; text-align:center">या इनसे जारी रखें</p>
+      <button onclick="socialLogin('Google')" style="width: 100%; margin:4px 0; background: #db4437">Google से साइन अप</button>
+      <button onclick="socialLogin('Facebook')" style="width: 100%; margin:4px 0; background: #1877f2">Facebook से साइन अप</button>
+      <button onclick="socialLogin('Instagram')" style="width: 100%; margin:4px 0; background:#c13584">Instagram से साइन अप</button>
+    </div>
+  </div>
+
+  <!-- शुरुआत: भाषा, उम्र, फिल्टर -->
+  <div id="start" class="screen">
+    <header><h2 id="t_title">स्वागत है</h2></header>
+    <div class="card">
+      <label id="t_lang">भाषा चुनें</label>
+      <select id="lang" onchange="setLang()">
+        <option value="hi">हिंदी</option>
+        <option value="en">English</option>
+      </select>
+
+      <label id="t_age">आपकी उम्र (18 या ऊपर)</label>
+      <input type="number" id="age" min="18" max="99" placeholder="18">
+
+      <label id="t_me">मैं हूँ</label>
+      <select id="me">
+        <option value="boy">लड़का</option>
+        <option value="girl">लड़की</option>
+      </select>
+
+      <label id="t_want">किससे बात करनी है</label>
+      <select id="want">
+        <option value="girls">सिर्फ लड़कियाँ</option>
+        <option value="boys">सिर्फ लड़के</option>
+        <option value="both">दोनों</option>
+      </select>
+
+      <button onclick="begin()" id="t_go" style="margin-top: 8px;">शुरू करें (फ्री)</button>
+    </div>
+  </div>
+
+  <!-- चैट लिस्ट -->
+  <div id="list" class="screen">
+    <header>
+      <h2 id="t_chats">चैट्स</h2>
+      <button onclick="show('connect')">कनेक्ट</button>
+    </header>
+    <div id="chatlist"></div>
+  </div>
+
+  <!-- चैट विंडो -->
+  <div id="chat" class="screen">
+    <header>
+      <button onclick="show('list')">&lt;</button>
+      <h3 id="chatname">नाम</h3>
+      <div class="actions">
+        <button onclick="videoCall()">वीडियो</button>
+        <button onclick="audioCall()">ऑडियो</button>
+        <button onclick="reportUser()">रिपोर्ट</button>
+        <button onclick="blockUser()">ब्लॉक</button>
+      </div>
+    </header>
+    <div class="msgs" id="msgs"></div>
+    <div class="row">
+      <input type="text" id="txt" placeholder="मैसेज लिखें...">
+      <button onclick="sendText()">भेजें</button>
+    </div>
+    <div class="row">
+      <input type="file" id="photo" accept="image/*" style="display:none" onchange="sendPhoto(event)">
+      <button onclick="document.getElementById('photo').click()">फोटो</button>
+      <button id="recbtn" onclick="toggleRecord()">वॉइस</button>
+    </div>
+  </div>
+
+  <!-- कनेक्ट और लाइव -->
+  <div id="connect" class="screen">
+    <header>
+      <button onclick="show('list')">&lt;</button>
+      <h2 id="t_conn">नए लोगों से मिलें</h2>
+    </header>
+    <div class="card">
+      <p>टैप करके किसी से कनेक्ट हों, सब फ्री है।</p>
+      <button onclick="startMatch()" style="margin-top: 8px;">कनेक्ट करें</button>
+      <p id="matchstatus" style="margin-top: 10px"></p>
+    </div>
+    <div class="card">
+      <h3>लाइव</h3>
+      <button onclick="goLive()" style="margin-top: 8px;">लाइव आएँ</button>
+      <video id="livevideo" autoplay muted playsinline style="width: 100%; margin-top: 10px; border-radius: 12px; display:none"></video>
+    </div>
+  </div>
+
+  <!-- प्रोफाइल -->
+  <div id="profile" class="screen">
+    <header><h2>मेरी प्रोफाइल</h2></header>
+    <div class="card">
+      <div class="avatar" id="myavatar" style="width:80px; height:80px; margin:auto">?</div>
+      <input type="file" id="avatarfile" accept="image/*" onchange="setAvatar(event)">
+      <input type="text" id="myname" placeholder="अपना नाम">
+      <input type="number" id="myage" min="18" placeholder="उम्र (18+)">
+      <textarea id="mybio" placeholder="अपने बारे में लिखें"></textarea>
+      <div class="row" style="padding: 4px 0;">
+        <button onclick="saveProfile()">सेव करें</button>
+        <button onclick="logout()" style="background: #555">लॉगआउट</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- मोमेंट्स -->
+  <div id="moments" class="screen">
+    <header><h2>मोमेंट्स</h2></header>
+    <div class="card">
+      <textarea id="posttext" placeholder="कुछ लिखें..."></textarea>
+      <input type="file" id="postfile" accept="image/*,video/*">
+      <button onclick="addPost()">पोस्ट करें</button>
+    </div>
+    <div id="feed"></div>
+  </div>
+
+  <!-- पार्टी रूम -->
+  <div id="rooms" class="screen">
+    <header><h2>पार्टी रूम</h2></header>
+    <div class="card">
+      <input type="text" id="roomname" placeholder="रूम का नाम">
+      <button onclick="createRoom()">रूम बनाएँ</button>
+    </div>
+    <div id="roomlist"></div>
+  </div>
+
+  <!-- गेम्स -->
+  <div id="games" class="screen">
+    <header><h2>गेम्स</h2></header>
+    <div class="card"><button onclick="playLudo()">लूडो (पासा)</button></div>
+    <div class="card"><button onclick="playTruth()">सच या हिम्मत</button></div>
+    <div class="card"><button onclick="playSnake()">साँप सीढ़ी (पासा)</button></div>
+    <div class="card"><p id="gameout" style="font-size:20px; text-align:center"></p></div>
+  </div>
+
+  <!-- डेली रिवॉर्ड -->
+  <div id="reward" class="screen">
+    <header><h2>डेली रिवॉर्ड</h2></header>
+    <div class="card">
+      <p>रोज़ आएँ और फ्री पॉइंट्स पाएँ</p>
+      <p style="font-size: 24px; margin-top: 8px;" id="streak">स्ट्रीक : 0 दिन</p>
+      <p style="font-size: 24px; margin-bottom: 10px;" id="points">पॉइंट्स : 0</p>
+      <button onclick="claimDaily()">आज का रिवॉर्ड लें (फ्री)</button>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button onclick="show('list'); loadUsers()">चैट</button>
+    <button onclick="show('connect')">कनेक्ट</button>
+    <button onclick="show('moments')">मोमेंट्स</button>
+    <button onclick="show('rooms')">रूम</button>
+    <button onclick="show('games')">गेम्स</button>
+    <button onclick="show('reward')">रिवॉर्ड</button>
+    <button onclick="show('profile')">प्रोफाइल</button>
+  </div>
+
+  <script>
+    const text = {
+      hi: {
+        title: 'स्वागत है', lang: 'भाषा चुनें',
+        age: 'आपकी उम्र (18 या ऊपर)', me: 'मैं हूँ',
+        want: 'किससे बात करनी है', go: 'शुरू करें (फ्री)',
+        chats: 'चैट्स', conn: 'नए लोगों से मिलें'
+      },
+      en: {
+        title: 'Welcome', lang: 'Choose language',
+        age: 'Your age (18 or above)', me: 'I am',
+        want: 'Who do you want to talk to', go: 'Start (Free)',
+        chats: 'Chats', conn: 'Meet new people'
+      }
+    };
+
+    function setLang() {
+      const langVal = document.getElementById('lang').value;
+      document.getElementById('t_title').innerText = text[langVal].title;
+      document.getElementById('t_lang').innerText = text[langVal].lang;
+      document.getElementById('t_age').innerText = text[langVal].age;
+      document.getElementById('t_me').innerText = text[langVal].me;
+      document.getElementById('t_want').innerText = text[langVal].want;
+      document.getElementById('t_go').innerText = text[langVal].go;
+      document.getElementById('t_chats').innerText = text[langVal].chats;
+      document.getElementById('t_conn').innerText = text[langVal].conn;
+    }
+
+    function show(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function begin() {
+      const age = parseInt(document.getElementById('age').value, 10);
+      if (!age || age < 18) {
+        alert('यह सेवा सिर्फ 18 साल या उससे ऊपर के लोगों के लिए है।');
+        return;
+      }
+      show('list');
+      if (window.loadUsers) window.loadUsers();
+    }
+
+    function setAvatar(e) {
+      const f = e.target.files[0];
+      if (!f) return;
+      document.getElementById('myavatar').innerHTML =
+        '<img src="' + URL.createObjectURL(f) + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover">';
+    }
+
+    function logout() {
+      if (window.signOutUser) window.signOutUser();
+      show('auth');
+    }
+
+    function addPost() {
+      const t = document.getElementById('posttext').value;
+      const f = document.getElementById('postfile').files[0];
+      const box = document.createElement('div');
+      box.className = 'card';
+
+      if (t.trim()) {
+        const p = document.createElement('p');
+        p.innerText = t;
+        p.style.marginBottom = '8px';
+        box.appendChild(p);
+      }
+
+      if (f) {
+        const url = URL.createObjectURL(f);
+        box.insertAdjacentHTML(
+          'beforeend',
+          f.type.startsWith('video')
+            ? '<video controls src="' + url + '" style="width:100%;border-radius:8px;margin-bottom:8px"></video>'
+            : '<img src="' + url + '" style="width:100%;border-radius:8px;margin-bottom:8px">'
+        );
+      }
+
+      box.insertAdjacentHTML(
+        'beforeend',
+        '<button onclick="this.innerText=\'❤ पसंद\'">लाइक</button> ' +
+        '<button onclick="alert(\'रिपोर्ट भेज दी गई\')">रिपोर्ट</button>'
+      );
+
+      document.getElementById('feed').prepend(box);
+      document.getElementById('posttext').value = '';
+      document.getElementById('postfile').value = '';
+    }
+
+    function createRoom() {
+      const n = document.getElementById('roomname').value.trim();
+      if (!n) return;
+      const d = document.createElement('div');
+      d.className = 'chat-item';
+      d.innerHTML = '<div class="avatar">🎉</div><div><b></b><br><small>रूम चालू है</small></div>';
+      d.querySelector('b').innerText = n;
+      d.onclick = () => window.open('https://meet.jit.si/chatsite-room-' + encodeURIComponent(n), '_blank');
+      document.getElementById('roomlist').prepend(d);
+      document.getElementById('roomname').value = '';
+    }
+
+    function playLudo() {
+      document.getElementById('gameout').innerText = 'पासा : ' + (Math.floor(Math.random() * 6) + 1);
+    }
+
+    function playSnake() {
+      document.getElementById('gameout').innerText = 'पासा : ' + (Math.floor(Math.random() * 6) + 1);
+    }
+
+    function playTruth() {
+      const list = [
+        'अपनी सबसे अच्छी याद बताइए',
+        'आज का सबसे मज़ेदार पल बताइए',
+        'अपना पसंदीदा गाना गाइए',
+        'अपना पसंदीदा खाना बताइए'
+      ];
+      document.getElementById('gameout').innerText = list[Math.floor(Math.random() * list.length)];
+    }
+
+    function claimDaily() {
+      const today = new Date().toDateString();
+      if (localStorage.getItem('lastClaim') === today) {
+        alert('आज का रिवॉर्ड ले चुके हैं');
+        return;
+      }
+      const s = parseInt(localStorage.getItem('streak') || '0', 10) + 1;
+      const p = parseInt(localStorage.getItem('points') || '0', 10) + 10 * s;
+      localStorage.setItem('streak', s);
+      localStorage.setItem('points', p);
+      localStorage.setItem('lastClaim', today);
+      document.getElementById('streak').innerText = 'स्ट्रीक : ' + s + ' दिन';
+      document.getElementById('points').innerText = 'पॉइंट्स : ' + p;
+    }
+
+    async function goLive() {
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const v = document.getElementById('livevideo');
+        v.srcObject = s;
+        v.style.display = 'block';
+      } catch (e) {
+        alert('कैमरा और माइक की अनुमति दें');
+      }
+    }
+
+    function startMatch() {
+      document.getElementById('matchstatus').innerText = 'कोई ऑनलाइन यूज़र ढूँढ रहे हैं...';
+      if (window.matchRandom) window.matchRandom();
+    }
+  </script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getAuth,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      GoogleAuthProvider,
+      FacebookAuthProvider,
+      signInWithPopup,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      query,
+      orderBy,
+      onSnapshot,
+      serverTimestamp,
+      doc,
+      setDoc,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // यहाँ अपना Firebase config चिपकाएँ
+    const firebaseConfig = {
+      apiKey: "YOUR_KEY",
+      authDomain: "YOUR_APP.firebaseapp.com",
+      projectId: "YOUR_APP"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let me = null;
+    let otherId = null;
+    let blockedIds = [];
+
+    window.doSignup = async () => {
+      const e = document.getElementById('email').value;
+      const p = document.getElementById('pass').value;
+      try {
+        await createUserWithEmailAndPassword(auth, e, p);
+        show('profile');
+      } catch (err) {
+        alert(err.message);
+      }
+    };
+
+    window.doLogin = async () => {
+      const e = document.getElementById('email').value;
+      const p = document.getElementById('pass').value;
+      try {
+        await signInWithEmailAndPassword(auth, e, p);
+        show('start');
+      } catch (err) {
+        alert(err.message);
+      }
+    };
+
+    window.socialLogin = async (name) => {
+      if (name === 'Instagram') {
+        alert('Instagram लॉगिन के लिए Meta डेवलपर सेटअप चाहिए, अभी Google या Facebook इस्तेमाल करें।');
+        return;
+      }
+      const provider = name === 'Google' ? new GoogleAuthProvider() : new FacebookAuthProvider();
+      try {
+        await signInWithPopup(auth, provider);
+        show('profile');
+      } catch (err) {
+        alert(name + ' लॉगिन: ' + err.message);
+      }
+    };
+
+    window.signOutUser = () => signOut(auth);
+
+    onAuthStateChanged(auth, async (u) => {
+      me = u;
+      if (u) {
+        const b = await getDocs(collection(db, 'users', u.uid, 'blocked'));
+        blockedIds = b.docs.map(d => d.id);
+      } else {
+        blockedIds = [];
+      }
+    });
+
+    window.saveProfile = async () => {
+      if (!me) {
+        alert('पहले लॉगिन करें');
+        return;
+      }
+      const age = parseInt(document.getElementById('myage').value, 10);
+      if (!age || age < 18) {
+        alert('यह सेवा सिर्फ 18 या उससे ऊपर के लिए है');
+        return;
+      }
+      await setDoc(doc(db, 'users', me.uid), {
+        name: document.getElementById('myname').value,
+        age: age,
+        gender: document.getElementById('me').value,
+        bio: document.getElementById('mybio').value
+      });
+      alert('प्रोफाइल सेव हो गई');
+    };
+
+    window.loadUsers = async () => {
+      if (!me) return;
+      const want = document.getElementById('want').value;
+      const snap = await getDocs(collection(db, 'users'));
+      const box = document.getElementById('chatlist');
+      box.innerHTML = '';
+
+      snap.forEach(d => {
+        if (d.id === me.uid || blockedIds.includes(d.id)) return;
+        const u = d.data();
+        if (want === 'girls' && u.gender !== 'girl') return;
+        if (want === 'boys' && u.gender !== 'boy') return;
+
+        const row = document.createElement('div');
+        row.className = 'chat-item';
+        row.innerHTML = '<div class="avatar"></div><div><b></b><br><small></small></div>';
+        row.querySelector('.avatar').innerText = (u.name || '?')[0];
+        row.querySelector('b').innerText = u.name || 'यूज़र';
+        row.querySelector('small').innerText = (u.age || '') + ' साल';
+        row.onclick = () => openRealChat(d.id, u.name);
+        box.appendChild(row);
+      });
+    };
+
+    window.matchRandom = async () => {
+      if (!me) {
+        alert('पहले लॉगिन करें');
+        return;
+      }
+      const want = document.getElementById('want').value;
+      const snap = await getDocs(collection(db, 'users'));
+      const pool = [];
+
+      snap.forEach(d => {
+        if (d.id === me.uid || blockedIds.includes(d.id)) return;
+        const u = d.data();
+        if (want === 'girls' && u.gender !== 'girl') return;
+        if (want === 'boys' && u.gender !== 'boy') return;
+        pool.push({ id: d.id, name: u.name });
+      });
+
+      if (!pool.length) {
+        document.getElementById('matchstatus').innerText = 'अभी कोई उपलब्ध नहीं है';
+        return;
+      }
+
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      openRealChat(pick.id, pick.name);
+    };
+
+    function chatId(a, b) {
+      return [a, b].sort().join('_');
+    }
+
+    let unsub = null;
+
+    window.openRealChat = (uid, name) => {
+      otherId = uid;
+      document.getElementById('chatname').innerText = name || 'यूज़र';
+      document.getElementById('msgs').innerHTML = '';
+      show('chat');
+      if (unsub) unsub();
+
+      const q = query(collection(db, 'chats', chatId(me.uid, uid), 'messages'), orderBy('t'));
+      unsub = onSnapshot(q, (snap) => {
+        const box = document.getElementById('msgs');
+        box.innerHTML = '';
+        snap.forEach(m => {
+          const d = m.data();
+          const el = document.createElement('div');
+          el.className = 'msg' + (d.from === me.uid ? ' me' : '');
+          if (d.type === 'audio') {
+            const a = document.createElement('audio');
+            a.controls = true;
+            a.src = d.data;
+            el.appendChild(a);
+          } else if (d.type === 'image') {
+            const i = document.createElement('img');
+            i.style.cssText = 'max-width: 100%; border-radius:8px';
+            i.src = d.data;
+            el.appendChild(i);
+          } else {
+            el.innerText = d.text;
+          }
+          box.appendChild(el);
+        });
+        box.scrollTop = box.scrollHeight;
+      });
+    };
+
+    window.sendText = async () => {
+      const t = document.getElementById('txt');
+      if (!t.value.trim() || !otherId || !me) return;
+      await addDoc(collection(db, 'chats', chatId(me.uid, otherId), 'messages'), {
+        from: me.uid,
+        type: 'text',
+        text: t.value,
+        t: serverTimestamp()
+      });
+      t.value = '';
+    };
+
+    window.sendPhoto = (e) => {
+      const f = e.target.files[0];
+      if (!f || !otherId || !me) return;
+      if (f.size > 500000) {
+        alert('फोटो 500KB से छोटी रखें');
+        return;
+      }
+      const r = new FileReader();
+      r.onload = async () => {
+        await addDoc(collection(db, 'chats', chatId(me.uid, otherId), 'messages'), {
+          from: me.uid,
+          type: 'image',
+          data: r.result,
+          t: serverTimestamp()
+        });
+      };
+      r.readAsDataURL(f);
+    };
+
+    let rec, chunks = [];
+
+    window.toggleRecord = async () => {
+      const btn = document.getElementById('recbtn');
+      if (rec && rec.state === 'recording') {
+        rec.stop();
+        btn.innerText = 'वॉइस';
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        rec = new MediaRecorder(stream);
+        chunks = [];
+        rec.ondataavailable = e => chunks.push(e.data);
+        rec.onstop = () => {
+          const blob = new Blob(chunks, { type: 'audio/webm' });
+          const r = new FileReader();
+          r.onload = async () => {
+            if (r.result.length > 700000) {
+              alert('वॉइस बहुत लंबी है, छोटी रिकॉर्ड करें');
+              return;
+            }
+            if (otherId && me) {
+              await addDoc(collection(db, 'chats', chatId(me.uid, otherId), 'messages'), {
+                from: me.uid,
+                type: 'audio',
+                data: r.result,
+                t: serverTimestamp()
+              });
+            }
+          };
+          r.readAsDataURL(blob);
+          stream.getTracks().forEach(t => t.stop());
+        };
+        rec.start();
+        btn.innerText = 'रोकें';
+      } catch (err) {
+        alert('माइक की अनुमति दें');
+      }
+    };
+
+    function roomFor() {
+      return 'chatsite-' + chatId(me.uid, otherId);
+    }
+
+    window.videoCall = () => {
+      if (!me || !otherId) {
+        alert('पहले किसी की चैट खोलें');
+        return;
+      }
+      window.open('https://meet.jit.si/' + roomFor(), '_blank');
+    };
+
+    window.audioCall = () => {
+      if (!me || !otherId) {
+        alert('पहले किसी की चैट खोलें');
+        return;
+      }
+      window.open('https://meet.jit.si/' + roomFor() + '#config.startWithVideoMuted=true', '_blank');
+    };
+
+    window.reportUser = async () => {
+      if (!otherId || !me) return;
+      await addDoc(collection(db, 'reports'), {
+        by: me.uid,
+        against: otherId,
+        t: serverTimestamp()
+      });
+      alert('रिपोर्ट भेज दी गई। धन्यवाद।');
+    };
+
+    window.blockUser = async () => {
+      if (!otherId || !me) return;
+      await setDoc(doc(db, 'users', me.uid, 'blocked', otherId), { t: Date.now() });
+      blockedIds.push(otherId);
+      alert('यूज़र ब्लॉक हो गया');
+      show('list');
+      loadUsers();
+    };
+  </script>
+</body>
+</html>
